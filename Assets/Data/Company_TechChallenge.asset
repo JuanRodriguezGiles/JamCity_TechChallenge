@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b37ecd1ba9360f840a940ed8b22e6156, type: 3}
+  m_Name: Company_TechChallenge
+  m_EditorClassIdentifier: 
+  employees: 251
+  departmentsData:
+  - departmentType: 0
+    seniorities:
+    - level: 2
+      baseSalary: 1500
+      incrementPercentage: 5
+      employees: 5
+      expectedSalary: 1575
+    - level: 1
+      baseSalary: 1000
+      incrementPercentage: 2
+      employees: 2
+      expectedSalary: 1020
+    - level: 0
+      baseSalary: 500
+      incrementPercentage: 0.5
+      employees: 13
+      expectedSalary: 502.5
+  - departmentType: 1
+    seniorities:
+    - level: 2
+      baseSalary: 5000
+      incrementPercentage: 10
+      employees: 50
+      expectedSalary: 5500
+    - level: 1
+      baseSalary: 3000
+      incrementPercentage: 7
+      employees: 68
+      expectedSalary: 3210
+    - level: 0
+      baseSalary: 1500
+      incrementPercentage: 5
+      employees: 32
+      expectedSalary: 1575
+  - departmentType: 2
+    seniorities:
+    - level: 2
+      baseSalary: 2000
+      incrementPercentage: 5
+      employees: 5
+      expectedSalary: 2100
+    - level: 1
+      baseSalary: 1200
+      incrementPercentage: 2.5
+      employees: 20
+      expectedSalary: 1230
+  - departmentType: 3
+    seniorities:
+    - level: 2
+      baseSalary: 2000
+      incrementPercentage: 7
+      employees: 10
+      expectedSalary: 2140
+    - level: 0
+      baseSalary: 800
+      incrementPercentage: 4
+      employees: 15
+      expectedSalary: 832
+  - departmentType: 4
+    seniorities:
+    - level: 2
+      baseSalary: 4000
+      incrementPercentage: 10
+      employees: 10
+      expectedSalary: 4400
+    - level: 1
+      baseSalary: 2400
+      incrementPercentage: 5
+      employees: 20
+      expectedSalary: 2520
+  - departmentType: 5
+    seniorities:
+    - level: 2
+      baseSalary: 20000
+      incrementPercentage: 100
+      employees: 1
+      expectedSalary: 40000

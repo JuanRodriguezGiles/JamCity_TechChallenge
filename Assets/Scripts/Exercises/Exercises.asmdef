@@ -1,0 +1,16 @@
+{
+    "name": "Exercises",
+    "rootNamespace": "",
+    "references": [
+        "GUID:fb5361d1f0316d74988514168845e2c1"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
