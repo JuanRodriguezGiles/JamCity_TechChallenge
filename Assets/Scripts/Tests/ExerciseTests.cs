@@ -20,180 +20,235 @@ namespace TechChallenge.Scripts.Tests
     {
         #region PRIVATE_FIELDS
         private CompanyData companyData = null;
+        private Program program = null;
+        private TestsUI testsUI = null;
         #endregion
         
         #region PUBLIC_METHODS
-        [UnityTest]
-        public IEnumerator LoadTestScene()
+        [UnityTest, Order(1)]
+        public IEnumerator TestLoadScene()
         {
-            SceneManager.LoadSceneAsync("TechChallenge");
-            yield return null;
-        }
-        
-        [UnityTest]
-        public IEnumerator TestExercise1()
-        {
-            TestsUI testsUI = Object.FindObjectOfType<TestsUI>();
-            testsUI.UpdateText("Running test 1");
-            
-            //Create test data using provided values
-            companyData = LoadCompanyDataSO();
-            List<Employee> employees = GenerateEmployees();
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("TechChallenge");
 
+            while (!asyncLoad.isDone)
+            {
+                yield return null;
+            }
+            
+            testsUI = Object.FindObjectOfType<TestsUI>();
+            program = new Program();
+            
+            Assert.IsNotNull(testsUI);
+            Assert.IsNotNull(program);
+        }
+
+        [Test, Order(2)]
+        public void TestLoadInputData()
+        {
+            UpdateTextUI("Running LoadInputData");
+            
+            LoadCompanyData();
+            
+            Assert.IsNotNull(companyData);
+            
+            UpdateTextUI("Finished LoadInputData");
+        }
+
+        [Test, Order(3)]
+        public void TestGenerateEmployees()
+        {
+            UpdateTextUI("Running TestGenerateEmployees");
+
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
+            
             //Check if created employees count match with intended count
-            Assert.AreEqual(companyData.Employees, employees.Count);
+            Assert.AreEqual(program.GetEmployeeCount(), companyData.Employees);
+
+            UpdateTextUI("Finished TestGenerateEmployees");
+        }
+
+        [Test, Order(4)]
+        public void TestGrouping()
+        {
+            UpdateTextUI("Running TestGrouping");
+
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
             
             //Shuffle list to correctly test program
-            Shuffle(employees);
+            Shuffle(program.GetAllEmployees());
 
-            //Execute ordering program
-            Exercise1 exercise1 = new Exercise1();
-            Dictionary<DepartmentType, List<Employee>> groupedAndOrderedEmployees = exercise1.GroupAndOrderEmployees(employees);
-
-            Assert.AreEqual(groupedAndOrderedEmployees.Count, companyData.DepartmentData.Count);
+            program.GroupAndOrderEmployees();
             
-            foreach (KeyValuePair<DepartmentType, List<Employee>> employeesKvp in groupedAndOrderedEmployees)
+            Assert.AreEqual(program.GetDepartmentCount(), companyData.DepartmentData.Count);
+            
+            foreach (var departmentData in companyData.DepartmentData)
             {
-                for (int i = 0; i < companyData.DepartmentData.Count; i++)
+                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
                 {
-                    if (employeesKvp.Key == companyData.DepartmentData[i].DepartmentType)
+                    for (int i = 0; i < departmentEmployees.Count; i++)
                     {
-                        //Check if department employees count matches with intended value
-                        int departmentEmployees = 0;
-                        for (int j = 0; j < companyData.DepartmentData[i].Seniorities.Count; j++)
-                        {
-                            departmentEmployees += companyData.DepartmentData[i].Seniorities[j].Employees;
-                        }
-                        Assert.AreEqual(employeesKvp.Value.Count, departmentEmployees);
-
-                        Dictionary<SeniorityLevel, int> countBySeniority = exercise1.GroupBySeniority(employeesKvp.Value);
-                        //Check if seniority count matches with intended values
-                        foreach (KeyValuePair<SeniorityLevel, int> seniorityKvp in countBySeniority)
-                        {
-                            switch (seniorityKvp.Key)
-                            {
-                                case SeniorityLevel.JUNIOR:
-                                    Assert.AreEqual(seniorityKvp.Value, companyData.DepartmentData[i].Seniorities.Find(seniority => seniority.Level == SeniorityLevel.JUNIOR).Employees);
-                                    break;
-                                case SeniorityLevel.SEMI_SENIOR:
-                                    Assert.AreEqual(seniorityKvp.Value, companyData.DepartmentData[i].Seniorities.Find(seniority => seniority.Level == SeniorityLevel.SEMI_SENIOR).Employees);
-                                    break;
-                                case SeniorityLevel.SENIOR:
-                                    Assert.AreEqual(seniorityKvp.Value, companyData.DepartmentData[i].Seniorities.Find(seniority => seniority.Level == SeniorityLevel.SENIOR).Employees);
-                                    break;
-                            }
-                        }
-                        
-                        break;
+                        Assert.AreEqual(departmentEmployees[i].Position, departmentData.DepartmentType);
                     }
+                }
+                else
+                {
+                    Assert.Fail("Department: " + departmentData.DepartmentType + " not found");
                 }
             }
             
-            testsUI.UpdateText("Finished test 1");
-            yield return new WaitForSeconds(1f);
-        }
-
-        [UnityTest]
-        public IEnumerator TestExercise2()
-        {
-            TestsUI testsUI = Object.FindObjectOfType<TestsUI>();
-            testsUI.UpdateText("Running test 2");
-            
-            companyData = LoadCompanyDataSO();
-            List<Employee> employees = GenerateEmployees();
-
-            Exercise1 exercise1 = new Exercise1();
-            Dictionary<DepartmentType, List<Employee>> groupedAndOrderedEmployees = exercise1.GroupAndOrderEmployees(employees);
-
-            foreach (KeyValuePair<DepartmentType, List<Employee>> employeesKvp in groupedAndOrderedEmployees)
-            {
-                for (int i = 0; i < companyData.DepartmentData.Count; i++)
-                {
-                    if (employeesKvp.Key == companyData.DepartmentData[i].DepartmentType)
-                    {
-                        for (int j = 0; j < employeesKvp.Value.Count; j++)
-                        {
-                            Seniority seniority = companyData.DepartmentData[i].Seniorities.Find(departmentSeniority => departmentSeniority.Level == employeesKvp.Value[j].Seniority.Level);
-                            Assert.AreEqual(employeesKvp.Value[j].Seniority.IncrementPercentage, seniority.IncrementPercentage);
-                        }
-
-                        break;
-                    }
-                }
-            }
-            testsUI.UpdateText("Finished test 2");
-            yield return new WaitForSeconds(1f);
+            UpdateTextUI("Finished TestGrouping");
         }
         
-        [UnityTest]
-        public IEnumerator TestExercise3()
+        [Test, Order(5)]
+        public void TestOrdering()
         {
-            TestsUI testsUI = Object.FindObjectOfType<TestsUI>();
-            testsUI.UpdateText("Running test 3");
+            UpdateTextUI("Running TestOrdering");
             
-            companyData = LoadCompanyDataSO();
-            List<Employee> employees = GenerateEmployees();
-
-            for (int i = 0; i < companyData.DepartmentData.Count; i++)
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
+            
+            foreach (var departmentData in companyData.DepartmentData)
             {
-                for (int j = 0; j < companyData.DepartmentData[i].Seniorities.Count; j++)
+                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
                 {
-                    for (int k = 0; k < companyData.DepartmentData[i].Seniorities[j].Employees; k++)
+                    for (int i = 0; i < departmentEmployees.Count - 1; i++)
                     {
-                        employees.Add(new Employee(companyData.DepartmentData[i].DepartmentType, companyData.DepartmentData[i].Seniorities[j]));
+                        Assert.That(departmentEmployees[i].Seniority.Level <= departmentEmployees[i + 1].Seniority.Level);
+                    }
+                }
+                else
+                {
+                    Assert.Fail("Department: " + departmentData.DepartmentType + " not found");
+                }
+            }
+            
+            UpdateTextUI("Finished TestOrdering");
+        }
+
+        [Test, Order(6)]
+        public void TestDepartmentEmployeesCount()
+        {
+            UpdateTextUI("Running TestDepartmentEmployeesCount");
+            
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
+            
+            foreach (var departmentData in companyData.DepartmentData)
+            {
+                int departmentEmployeesCount = 0;
+                foreach (var departmentSeniority in departmentData.Seniorities)
+                {
+                    departmentEmployeesCount += departmentSeniority.Employees;
+                }
+                
+                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
+                {
+                    Assert.AreEqual(departmentEmployees.Count, departmentEmployeesCount);
+                }
+                else
+                {
+                    Assert.Fail("Department: " + departmentData.DepartmentType + " not found");
+                }
+            }
+
+            UpdateTextUI("Finished TestDepartmentEmployeesCount");
+        }
+
+        [Test, Order(7)]
+        public void TestDepartmentSenioritiesCount()
+        {
+            UpdateTextUI("Running TestDepartmentSenioritiesCount");
+            
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
+            
+            foreach (var departmentData in companyData.DepartmentData)
+            {
+                foreach (var departmentSeniority in departmentData.Seniorities)
+                {
+                    int seniorityCount = program.GetSeniorityCount(departmentData.DepartmentType, departmentSeniority.Level);
+
+                    Assert.AreEqual(seniorityCount, departmentSeniority.Employees);
+                }
+            }
+
+            UpdateTextUI("Finished TestDepartmentSenioritiesCount");
+        }
+
+        [Test, Order(8)]
+        public void TestSalaryIncrementPercentage()
+        {
+            UpdateTextUI("Running TestSalaryIncrementPercentage");
+            
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
+            
+            foreach (var departmentData in companyData.DepartmentData)
+            {
+                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees)) 
+                {
+                    foreach (var employee in departmentEmployees)
+                    {
+                        Seniority seniority = departmentData.Seniorities.Find(departmentSeniority => departmentSeniority.Level == employee.Seniority.Level);
+                        Assert.IsNotNull(seniority);
+                        Assert.AreEqual(employee.Seniority.IncrementPercentage, seniority.IncrementPercentage);
+                    }
+                }
+                else
+                {
+                    Assert.Fail("Department: " + departmentData.DepartmentType + " not found");
+                }
+            }
+           
+            UpdateTextUI("Finished TestSalaryIncrementPercentage");
+        }
+        
+        [UnityTest, Order(9)]
+        public IEnumerator TestSalaryIncrement()
+        {
+            UpdateTextUI("Running TestSalaryIncrement");
+            
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
+            
+            foreach (var departmentData in companyData.DepartmentData)
+            {
+                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
+                {
+                    foreach (var employee in departmentEmployees)
+                    {
+                        DepartmentSeniority seniority = departmentData.Seniorities.Find(seniority => seniority.Level == employee.Seniority.Level);
+
+                        double incrementedSalary = program.GetUpdatedSalary(employee.Seniority.BaseSalary, employee.Seniority.IncrementPercentage);
+                        Assert.AreEqual(incrementedSalary, seniority.ExpectedSalary);
                     }
                 }
             }
             
-            Exercise1 exercise1 = new Exercise1();
-            Dictionary<DepartmentType, List<Employee>> groupedAndOrderedEmployees = exercise1.GroupAndOrderEmployees(employees);
-
-            Exercise3 exercise3 = new Exercise3();
-
-            foreach (KeyValuePair<DepartmentType, List<Employee>> employeesKvp in groupedAndOrderedEmployees)
-            {
-                for (int i = 0; i < companyData.DepartmentData.Count; i++)
-                {
-                    if (employeesKvp.Key == companyData.DepartmentData[i].DepartmentType)
-                    {
-                        for (int j = 0; j < employeesKvp.Value.Count; j++)
-                        {
-                            DepartmentSeniority seniority = companyData.DepartmentData[i].Seniorities.Find(seniority => seniority.Level == employeesKvp.Value[j].Seniority.Level);
-
-                            double salary = exercise3.GetUpdatedSalary(employeesKvp.Value[j].Seniority.BaseSalary, employeesKvp.Value[j].Seniority.IncrementPercentage);
-                            Assert.AreEqual(salary, seniority.ExpectedSalary);
-                        }
-                        
-                        break;
-                    }
-                }
-            }
-            
-            testsUI.UpdateText("Finished test 3");
-            yield return new WaitForSeconds(1f);        
+            UpdateTextUI("Finished TestSalaryIncrement");
+            yield return new WaitForSeconds(3f);        
         }
         #endregion
         
         #region PRIVATE_METHODS
-        private List<Employee> GenerateEmployees()
+        private void UpdateTextUI(string text)
         {
-            List<Employee> employees = new List<Employee>();
-            
-            for (int i = 0; i < companyData.DepartmentData.Count; i++)
+            if (testsUI != null)
             {
-                for (int j = 0; j < companyData.DepartmentData[i].Seniorities.Count; j++)
-                {
-                    for (int k = 0; k < companyData.DepartmentData[i].Seniorities[j].Employees; k++)
-                    {
-                        employees.Add(new Employee(companyData.DepartmentData[i].DepartmentType, companyData.DepartmentData[i].Seniorities[j]));
-                    }
-                }
+                testsUI.UpdateText(text);
             }
-
-            return employees;
         }
         
-        private CompanyData LoadCompanyDataSO()
+        private void LoadCompanyData()
         {
             string scriptableObjectName = "Company_TechChallenge";
             //In real world scenario we can use Resources.Load 
@@ -209,7 +264,7 @@ namespace TechChallenge.Scripts.Tests
                 Debug.LogWarning($"More than one {nameof(CompanyData)} found named {scriptableObjectName}, taking first one");
             }
 
-            return (CompanyData)AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guids[0]), typeof(CompanyData));
+            companyData = (CompanyData)AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guids[0]), typeof(CompanyData));
         }
         
         private void Shuffle<T>(List<T> list)
