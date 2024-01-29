@@ -21,8 +21,9 @@ namespace TechChallenge.Scripts.Tests
     {
         #region PRIVATE_FIELDS
         private CompanyData companyData = null;
-        private Program program = null;
+        private EmployeeManager employeeManager = null;
         private TestsUI testsUI = null;
+        private List<Employee> employees = null;
         #endregion
         
         #region PUBLIC_METHODS
@@ -30,8 +31,10 @@ namespace TechChallenge.Scripts.Tests
         public void SetUp()
         {
             LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
+            employees = GenerateEmployees(companyData);
+            //Suffle to correctly test grouping and ordering
+            Shuffle(employees);
+            employeeManager = new EmployeeManager(employees);
         }
         
         [UnityTest, Order(1)]
@@ -47,7 +50,7 @@ namespace TechChallenge.Scripts.Tests
             testsUI = Object.FindObjectOfType<TestsUI>();
             
             Assert.IsNotNull(testsUI);
-            Assert.IsNotNull(program);
+            Assert.IsNotNull(employeeManager);
         }
 
         [Test, Order(2)]
@@ -66,7 +69,7 @@ namespace TechChallenge.Scripts.Tests
             UpdateTextUI("Running TestGenerateEmployees");
             
             //Check if created employees count match with intended count
-            Assert.AreEqual(program.GetEmployeeCount(), companyData.Employees);
+            Assert.AreEqual(employeeManager.GetEmployeeCount(), companyData.Employees);
 
             UpdateTextUI("Finished TestGenerateEmployees");
         }
@@ -76,16 +79,11 @@ namespace TechChallenge.Scripts.Tests
         {
             UpdateTextUI("Running TestGrouping");
             
-            //Shuffle list to correctly test program
-            Shuffle(program.GetAllEmployees());
-
-            program.GroupAndOrderEmployees();
-            
-            Assert.AreEqual(program.GetDepartmentCount(), companyData.DepartmentData.Count);
+            Assert.AreEqual(employeeManager.GetDepartmentCount(), companyData.DepartmentData.Count);
             
             foreach (var departmentData in companyData.DepartmentData)
             {
-                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
+                if (employeeManager.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
                 {
                     foreach (var employee in departmentEmployees)
                     {
@@ -108,7 +106,7 @@ namespace TechChallenge.Scripts.Tests
             
             foreach (var departmentData in companyData.DepartmentData)
             {
-                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
+                if (employeeManager.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
                 {
                     for (int i = 0; i < departmentEmployees.Count - 1; i++)
                     {
@@ -137,7 +135,7 @@ namespace TechChallenge.Scripts.Tests
                     departmentEmployeesCount += departmentSeniority.Employees;
                 }
                 
-                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
+                if (employeeManager.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
                 {
                     Assert.AreEqual(departmentEmployees.Count, departmentEmployeesCount);
                 }
@@ -159,7 +157,7 @@ namespace TechChallenge.Scripts.Tests
             {
                 foreach (var departmentSeniority in departmentData.Seniorities)
                 {
-                    int seniorityCount = program.GetSeniorityCount(departmentData.DepartmentType, departmentSeniority.Level);
+                    int seniorityCount = employeeManager.GetSeniorityCount(departmentData.DepartmentType, departmentSeniority.Level);
 
                     Assert.AreEqual(seniorityCount, departmentSeniority.Employees);
                 }
@@ -175,18 +173,10 @@ namespace TechChallenge.Scripts.Tests
             
             foreach (var departmentData in companyData.DepartmentData)
             {
-                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees)) 
+                foreach (var departmentSeniority in departmentData.Seniorities)
                 {
-                    foreach (var employee in departmentEmployees)
-                    {
-                        Seniority seniority = departmentData.Seniorities.Find(departmentSeniority => departmentSeniority.Level == employee.Seniority.Level);
-                        Assert.IsNotNull(seniority);
-                        Assert.AreEqual(employee.Seniority.IncrementPercentage, seniority.IncrementPercentage);
-                    }
-                }
-                else
-                {
-                    Assert.Fail("Department: " + departmentData.DepartmentType + " not found");
+                    double incrementPercentage = employeeManager.GetEmployeeSalaryIncrement(departmentData.DepartmentType, departmentSeniority.Level);
+                    Assert.AreEqual(incrementPercentage, departmentSeniority.IncrementPercentage);
                 }
             }
            
@@ -200,13 +190,13 @@ namespace TechChallenge.Scripts.Tests
             
             foreach (var departmentData in companyData.DepartmentData)
             {
-                if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
+                if (employeeManager.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
                 {
                     foreach (var employee in departmentEmployees)
                     {
                         DepartmentSeniority seniority = departmentData.Seniorities.Find(seniority => seniority.Level == employee.Seniority.Level);
 
-                        double incrementedSalary = program.GetUpdatedSalary(employee.Seniority.BaseSalary, employee.Seniority.IncrementPercentage);
+                        double incrementedSalary = employeeManager.GetUpdatedSalary(employee.Seniority.BaseSalary, employee.Seniority.IncrementPercentage);
                         Assert.AreEqual(incrementedSalary, seniority.ExpectedSalary);
                     }
                 }
@@ -229,7 +219,6 @@ namespace TechChallenge.Scripts.Tests
         private void LoadCompanyData()
         {
             string scriptableObjectName = "Company_TechChallenge";
-            //In real world scenario we can use Resources.Load 
             string[] guids = AssetDatabase.FindAssets($"t:{nameof(CompanyData)} {scriptableObjectName}");
             
             if (guids.Length == 0)
@@ -254,6 +243,24 @@ namespace TechChallenge.Scripts.Tests
                 int k = Random.Range(0, n + 1); 
                 (list[k], list[n]) = (list[n], list[k]);
             }
+        }
+        
+        private List<Employee> GenerateEmployees(CompanyData companyData)
+        {
+            List<Employee> newEmployees = new List<Employee>();
+            
+            foreach (var department in companyData.DepartmentData)
+            {
+                foreach (var seniority in department.Seniorities)
+                {
+                    for (int i = 0; i < seniority.Employees; i++)
+                    {
+                        newEmployees.Add(new Employee(department.DepartmentType, seniority));
+                    }
+                }
+            }
+
+            return newEmployees;
         }
         #endregion
     }
