@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.SceneManagement;
+
 using UnityEditor;
 
 using NUnit.Framework;
@@ -12,7 +13,7 @@ using TechChallenge.Scripts.UI;
 using TechChallenge.Scripts.Data;
 using TechChallenge.Scripts.Exercises;
 
-using Random = System.Random;
+using Random = UnityEngine.Random;
 
 namespace TechChallenge.Scripts.Tests
 {
@@ -25,6 +26,14 @@ namespace TechChallenge.Scripts.Tests
         #endregion
         
         #region PUBLIC_METHODS
+        [SetUp]
+        public void SetUp()
+        {
+            LoadCompanyData();
+            program = new Program();
+            program.GenerateEmployees(companyData);
+        }
+        
         [UnityTest, Order(1)]
         public IEnumerator TestLoadScene()
         {
@@ -36,7 +45,6 @@ namespace TechChallenge.Scripts.Tests
             }
             
             testsUI = Object.FindObjectOfType<TestsUI>();
-            program = new Program();
             
             Assert.IsNotNull(testsUI);
             Assert.IsNotNull(program);
@@ -47,8 +55,6 @@ namespace TechChallenge.Scripts.Tests
         {
             UpdateTextUI("Running LoadInputData");
             
-            LoadCompanyData();
-            
             Assert.IsNotNull(companyData);
             
             UpdateTextUI("Finished LoadInputData");
@@ -58,10 +64,6 @@ namespace TechChallenge.Scripts.Tests
         public void TestGenerateEmployees()
         {
             UpdateTextUI("Running TestGenerateEmployees");
-
-            LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
             
             //Check if created employees count match with intended count
             Assert.AreEqual(program.GetEmployeeCount(), companyData.Employees);
@@ -73,10 +75,6 @@ namespace TechChallenge.Scripts.Tests
         public void TestGrouping()
         {
             UpdateTextUI("Running TestGrouping");
-
-            LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
             
             //Shuffle list to correctly test program
             Shuffle(program.GetAllEmployees());
@@ -89,9 +87,9 @@ namespace TechChallenge.Scripts.Tests
             {
                 if (program.TryGetDepartmentEmployees(departmentData.DepartmentType, out List<Employee> departmentEmployees))
                 {
-                    for (int i = 0; i < departmentEmployees.Count; i++)
+                    foreach (var employee in departmentEmployees)
                     {
-                        Assert.AreEqual(departmentEmployees[i].Position, departmentData.DepartmentType);
+                        Assert.AreEqual(employee.Position, departmentData.DepartmentType);
                     }
                 }
                 else
@@ -107,10 +105,6 @@ namespace TechChallenge.Scripts.Tests
         public void TestOrdering()
         {
             UpdateTextUI("Running TestOrdering");
-            
-            LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
             
             foreach (var departmentData in companyData.DepartmentData)
             {
@@ -134,10 +128,6 @@ namespace TechChallenge.Scripts.Tests
         public void TestDepartmentEmployeesCount()
         {
             UpdateTextUI("Running TestDepartmentEmployeesCount");
-            
-            LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
             
             foreach (var departmentData in companyData.DepartmentData)
             {
@@ -165,10 +155,6 @@ namespace TechChallenge.Scripts.Tests
         {
             UpdateTextUI("Running TestDepartmentSenioritiesCount");
             
-            LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
-            
             foreach (var departmentData in companyData.DepartmentData)
             {
                 foreach (var departmentSeniority in departmentData.Seniorities)
@@ -186,10 +172,6 @@ namespace TechChallenge.Scripts.Tests
         public void TestSalaryIncrementPercentage()
         {
             UpdateTextUI("Running TestSalaryIncrementPercentage");
-            
-            LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
             
             foreach (var departmentData in companyData.DepartmentData)
             {
@@ -215,10 +197,6 @@ namespace TechChallenge.Scripts.Tests
         public IEnumerator TestSalaryIncrement()
         {
             UpdateTextUI("Running TestSalaryIncrement");
-            
-            LoadCompanyData();
-            program = new Program();
-            program.GenerateEmployees(companyData);
             
             foreach (var departmentData in companyData.DepartmentData)
             {
@@ -269,12 +247,11 @@ namespace TechChallenge.Scripts.Tests
         
         private void Shuffle<T>(List<T> list)
         {
-            Random rng = new Random();
             int n = list.Count;
             while (n > 1)
             {
                 n--;
-                int k = rng.Next(n + 1);
+                int k = Random.Range(0, n + 1); 
                 (list[k], list[n]) = (list[n], list[k]);
             }
         }
