@@ -196,7 +196,7 @@ namespace TechChallenge.Scripts.Tests
                     {
                         DepartmentSeniority seniority = departmentData.Seniorities.Find(seniority => seniority.Level == employee.Seniority.Level);
 
-                        double incrementedSalary = employeeManager.GetUpdatedSalary(employee.Seniority.BaseSalary, employee.Seniority.IncrementPercentage);
+                        double incrementedSalary = employeeManager.CalculateUpdatedSalary(employee.Seniority.BaseSalary, employee.Seniority.IncrementPercentage);
                         Assert.AreEqual(incrementedSalary, seniority.ExpectedSalary);
                     }
                 }

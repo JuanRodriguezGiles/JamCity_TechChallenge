@@ -26,7 +26,7 @@ namespace TechChallenge.Scripts.Exercises
                 );
         }
 
-        public double GetUpdatedSalary(double baseSalary, double incrementPercentage)
+        public double CalculateUpdatedSalary(double baseSalary, double incrementPercentage)
         {
             return baseSalary + baseSalary * (incrementPercentage / 100);
         }
@@ -66,12 +66,14 @@ namespace TechChallenge.Scripts.Exercises
         
         public double GetEmployeeSalaryIncrement(DepartmentType departmentType, SeniorityLevel seniorityLevel)
         {
-            if (departmentEmployees.TryGetValue(departmentType, out List<Employee> result))
+            if (this.departmentEmployees.TryGetValue(departmentType, out List<Employee> departmentEmployees))
             {
-                Employee employee = result.FirstOrDefault(e => e.Seniority.Level == seniorityLevel);
-                if (employee != null)
+                foreach (var employee in departmentEmployees)
                 {
-                    return employee.Seniority.IncrementPercentage;
+                    if (employee.Seniority.Level == seniorityLevel)
+                    {
+                        return employee.Seniority.IncrementPercentage;
+                    }
                 }
 
                 throw new ArgumentException("Invalid seniority");
@@ -79,7 +81,6 @@ namespace TechChallenge.Scripts.Exercises
 
             throw new ArgumentException("Invalid department");
         }
-
         #endregion
     }
 }
